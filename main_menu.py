@@ -1,15 +1,20 @@
 import tkinter as tk
+from tkinter import messagebox
+from levels_window import LevelsWindow
 
 
 class MainMenuApp(tk.Tk):
 
+
     def __init__(self):
         super().__init__()
 
+        # базовые настройки окна
         self.title("Клавиатурный тренажёр — меню")
         self.geometry("400x300")
         self.resizable(False, False)
 
+        # создаём виджеты (кнопки)
         self._create_widgets()
 
     def _create_widgets(self):
@@ -40,12 +45,11 @@ class MainMenuApp(tk.Tk):
         )
         btn_exit.pack(pady=10)
 
-
     def on_play(self):
-        pass
+        LevelsWindow(self)
 
     def on_help(self):
-        pass
+        messagebox.showinfo("Справка", "Клавиатурный тренажер версия 1.0")
 
     def on_exit(self):
         self.destroy()
