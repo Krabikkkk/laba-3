@@ -1,5 +1,11 @@
+import tkinter as tk
+
+from main_menu import MainMenuApp
+
+
 def main():
-    print()
+    app = MainMenuApp()
+    app.mainloop()
 
 
 if __name__ == "__main__":
