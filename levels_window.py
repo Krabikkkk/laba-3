@@ -1,8 +1,9 @@
 import tkinter as tk
 
+from level_window import LevelWindow
+
 
 class LevelsWindow(tk.Toplevel):
-
 
     def __init__(self, master: tk.Tk):
         super().__init__(master)
@@ -32,7 +33,9 @@ class LevelsWindow(tk.Toplevel):
             btn.pack(pady=5)
 
     def on_level_click(self, level: int):
-        pass
+
+        LevelWindow(self, level)
 
     def on_close(self):
         self.destroy()
+
