@@ -12,6 +12,7 @@ class LevelFrame(tk.Frame):
 
         self.level = 1
         self.expected_text = ""
+        self.expected_lines = []
         self.start_time = None
         self.errors = 0
         self.finished = False
@@ -27,17 +28,31 @@ class LevelFrame(tk.Frame):
         frame = tk.Frame(self)
         frame.pack(expand=True, fill="both", padx=10, pady=10)
 
-        self.label_text = tk.Label(
+        self.text_example = tk.Text(
             frame,
-            text="",
             font=("Arial", 14),
-            wraplength=760,
-            justify="left"
+            width=70,
+            height=1,
+            wrap="none",
+            borderwidth=0,
+            highlightthickness=0
         )
-        self.label_text.pack(pady=10)
+        self.text_example.pack(pady=10, fill="x")
+        self.text_example.configure(state="disabled")
 
-        self.entry_input = tk.Entry(frame, font=("Arial", 14), width=70)
-        self.entry_input.pack(pady=10)
+        self.text_example.tag_config("correct", background="#b8f5b1")
+        self.text_example.tag_config("wrong", background="#f5b1b1")
+        self.text_example.tag_config("cursor", underline=True)
+
+        self.entry_input = tk.Text(
+            frame,
+            font=("Arial", 14),
+            width=70,
+            height=1,
+            wrap="none"
+        )
+        self.entry_input.pack(pady=10, fill="x")
+        self.entry_input.focus_set()
 
         self.status_label = tk.Label(
             frame,
@@ -54,6 +69,13 @@ class LevelFrame(tk.Frame):
 
         buttons_frame = tk.Frame(frame)
         buttons_frame.pack(pady=10)
+
+        self.btn_restart = tk.Button(
+            buttons_frame,
+            text="Начать сначала",
+            command=self.restart_level
+        )
+        self.btn_restart.pack(side="left", padx=5)
 
         self.btn_next_level = tk.Button(
             buttons_frame,
@@ -76,16 +98,37 @@ class LevelFrame(tk.Frame):
         self.score = 0
         self.start_time = None
         self.expected_text = ""
+        self.expected_lines = []
         self.result_label.config(text="")
         if self.best_label.winfo_manager():
             self.best_label.pack_forget()
         self.btn_next_level.pack_forget()
         self.btn_levels.pack_forget()
-        self.entry_input.delete(0, tk.END)
+        self.entry_input.delete("1.0", "end")
+        self.entry_input.configure(height=1)
         self.entry_input.focus_set()
         self.status_label.config(text="Ошибки: 0 | Время: 0.0 c")
+
+        self.text_example.configure(state="normal")
+        self.text_example.delete("1.0", "end")
+        self.text_example.configure(state="disabled")
+
         self._load_level_text()
         self._load_best_score()
+        self.update_highlighting()
+
+    def restart_level(self):
+        self.finished = False
+        self.errors = 0
+        self.score = 0
+        self.start_time = None
+        self.entry_input.delete("1.0", "end")
+        self.entry_input.focus_set()
+        self.status_label.config(text="Ошибки: 0 | Время: 0.0 c")
+        self.result_label.config(text="")
+        self.btn_next_level.pack_forget()
+        self.btn_levels.pack_forget()
+        self.update_highlighting()
 
     def _load_level_text(self):
         base_dir = Path(__file__).resolve().parent
@@ -105,7 +148,20 @@ class LevelFrame(tk.Frame):
             text = f"(Нет текста для уровня {self.level})"
 
         self.expected_text = text
-        self.label_text.config(text=text)
+        self.expected_lines = self.expected_text.split("\n")
+
+        self.text_example.configure(state="normal")
+        self.text_example.delete("1.0", "end")
+        self.text_example.insert("1.0", self.expected_text)
+        self.text_example.configure(state="disabled")
+
+        lines = len(self.expected_lines)
+        if lines < 1:
+            lines = 1
+        if lines > 10:
+            lines = 10
+        self.entry_input.configure(height=lines)
+        self.text_example.configure(height=lines)
 
     def _best_scores_file(self) -> Path:
         base_dir = Path(__file__).resolve().parent
@@ -155,29 +211,84 @@ class LevelFrame(tk.Frame):
             text=f"Ошибки: {self.errors} | Время: {elapsed:.1f} c"
         )
 
+    def _index_to_global(self, line_index: int, col_index: int) -> int:
+        offset = 0
+        for i in range(line_index):
+            offset += len(self.expected_lines[i])
+            if i < len(self.expected_lines) - 1:
+                offset += 1
+        return offset + col_index
+
+    def update_highlighting(self):
+        current_text = self.entry_input.get("1.0", "end-1c")
+        self.text_example.configure(state="normal")
+        self.text_example.tag_remove("correct", "1.0", "end")
+        self.text_example.tag_remove("wrong", "1.0", "end")
+        self.text_example.tag_remove("cursor", "1.0", "end")
+
+        max_len = min(len(current_text), len(self.expected_text))
+        for i in range(max_len):
+            exp_ch = self.expected_text[i]
+            typed_ch = current_text[i]
+            start = f"1.0 + {i} chars"
+            end = f"1.0 + {i+1} chars"
+            if typed_ch == exp_ch:
+                self.text_example.tag_add("correct", start, end)
+            else:
+                self.text_example.tag_add("wrong", start, end)
+
+        if len(current_text) < len(self.expected_text):
+            start = f"1.0 + {len(current_text)} chars"
+            end = f"1.0 + {len(current_text)+1} chars"
+            self.text_example.tag_add("cursor", start, end)
+
+        self.text_example.configure(state="disabled")
+
     def on_key_press(self, event):
         if self.finished:
-            return
-        if not event.char:
-            return
+            return "break"
         if event.keysym == "BackSpace":
             return
+        if not event.char and event.keysym != "Return":
+            return
+
+        index_str = self.entry_input.index("insert")
+        line_str, col_str = index_str.split(".")
+        line_idx = int(line_str) - 1
+        col_idx = int(col_str)
+
+        if line_idx >= len(self.expected_lines):
+            return "break"
+
+        if event.keysym == "Return":
+            if line_idx >= len(self.expected_lines) - 1:
+                return "break"
+            if col_idx != len(self.expected_lines[line_idx]):
+                return "break"
+            typed_char = "\n"
+        else:
+            if col_idx >= len(self.expected_lines[line_idx]):
+                return "break"
+            typed_char = event.char
+
         if self.start_time is None:
             self.start_time = time.time()
-        current_text = self.entry_input.get()
-        index = len(current_text)
-        if index >= len(self.expected_text):
+
+        global_index = self._index_to_global(line_idx, col_idx)
+        if global_index >= len(self.expected_text):
             self.errors += 1
         else:
-            expected_char = self.expected_text[index]
-            if event.char != expected_char:
+            expected_char = self.expected_text[global_index]
+            if typed_char != expected_char:
                 self.errors += 1
+
         self.update_status()
 
     def on_key_release(self, event):
         if self.finished:
             return
-        current_text = self.entry_input.get()
+        self.update_highlighting()
+        current_text = self.entry_input.get("1.0", "end-1c")
         if current_text == self.expected_text and len(current_text) == len(self.expected_text):
             self.finish_attempt()
 
@@ -188,13 +299,19 @@ class LevelFrame(tk.Frame):
         else:
             elapsed = time.time() - self.start_time
         length = len(self.expected_text)
+        if elapsed > 0:
+            speed = length / elapsed
+        else:
+            speed = 0.0
         self.score = int(1000 + (length - elapsed) * 10 + (self.errors * -20))
         if self.score < 0:
             self.score = 0
         self.status_label.config(
             text=f"Ошибки: {self.errors} | Время: {elapsed:.1f} c"
         )
-        self.result_label.config(text=f"Очки: {self.score}")
+        self.result_label.config(
+            text=f"Очки: {self.score}\nСредняя скорость: {speed:.1f} симв/сек"
+        )
         if self.best_score is None or self.score > self.best_score:
             self.best_score = self.score
             self._save_best_score()
