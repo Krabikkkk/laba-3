@@ -247,12 +247,19 @@ class LevelFrame(tk.Frame):
     def on_key_press(self, event):
         if self.finished:
             return "break"
+
         if event.keysym == "BackSpace":
             return
-        if not event.char and event.keysym != "Return":
-            return
 
-        index_str = self.entry_input.index("insert")
+        if not event.char and event.keysym != "Return":
+            return "break"
+
+        insert_index = self.entry_input.index("insert")
+        end_index = self.entry_input.index("end-1c")
+        if insert_index != end_index:
+            return "break"
+
+        index_str = insert_index
         line_str, col_str = index_str.split(".")
         line_idx = int(line_str) - 1
         col_idx = int(col_str)
