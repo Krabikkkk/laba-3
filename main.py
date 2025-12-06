@@ -1,5 +1,3 @@
-import tkinter as tk
-
 from main_menu import MainMenuApp
 
 
