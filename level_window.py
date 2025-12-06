@@ -1,18 +1,16 @@
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
-from typing import Callable
 import time
 import json
 
 
-class LevelWindow(tk.Toplevel):
-    def __init__(self, main_app: tk.Tk, level: int, on_back: Callable[[], None]):
-        super().__init__(main_app)
-        self.main_app = main_app
-        self.level = level
-        self.on_back_callback = on_back
+class LevelFrame(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
 
+        self.level = 1
         self.expected_text = ""
         self.start_time = None
         self.errors = 0
@@ -20,35 +18,10 @@ class LevelWindow(tk.Toplevel):
         self.score = 0
         self.best_score = None
 
-        self.title(f"Уровень {level}")
-        self.center_window(self.main_app.window_width, self.main_app.window_height)
-        self.resizable(True, True)
-        self.bind("<Configure>", self.on_resize)
-        self.protocol("WM_DELETE_WINDOW", self.back_to_levels)
-
-        self._create_widgets()
-        self._load_level_text()
-        self._load_best_score()
-
-    def center_window(self, width, height):
-        self.geometry(f"{width}x{height}")
-        self.update_idletasks()
-        screen_w = self.winfo_screenwidth()
-        screen_h = self.winfo_screenheight()
-        x = (screen_w - width) // 2
-        y = (screen_h - height) // 2
-        self.geometry(f"{width}x{height}+{x}+{y}")
-
-    def on_resize(self, event):
-        if event.widget is self and event.width > 1 and event.height > 1:
-            self.main_app.window_width = event.width
-            self.main_app.window_height = event.height
-
-    def _create_widgets(self):
         top_bar = tk.Frame(self)
         top_bar.pack(fill="x")
 
-        btn_back = tk.Button(top_bar, text="← Назад", command=self.back_to_levels)
+        btn_back = tk.Button(top_bar, text="← Назад", command=self.go_to_levels)
         btn_back.pack(side="left", padx=5, pady=5)
 
         frame = tk.Frame(self)
@@ -65,7 +38,6 @@ class LevelWindow(tk.Toplevel):
 
         self.entry_input = tk.Entry(frame, font=("Arial", 14), width=70)
         self.entry_input.pack(pady=10)
-        self.entry_input.focus_set()
 
         self.status_label = tk.Label(
             frame,
@@ -96,6 +68,24 @@ class LevelWindow(tk.Toplevel):
 
         self.entry_input.bind("<KeyPress>", self.on_key_press)
         self.entry_input.bind("<KeyRelease>", self.on_key_release)
+
+    def set_level(self, level: int):
+        self.level = level
+        self.finished = False
+        self.errors = 0
+        self.score = 0
+        self.start_time = None
+        self.expected_text = ""
+        self.result_label.config(text="")
+        if self.best_label.winfo_manager():
+            self.best_label.pack_forget()
+        self.btn_next_level.pack_forget()
+        self.btn_levels.pack_forget()
+        self.entry_input.delete(0, tk.END)
+        self.entry_input.focus_set()
+        self.status_label.config(text="Ошибки: 0 | Время: 0.0 c")
+        self._load_level_text()
+        self._load_best_score()
 
     def _load_level_text(self):
         base_dir = Path(__file__).resolve().parent
@@ -217,14 +207,7 @@ class LevelWindow(tk.Toplevel):
 
     def go_next_level(self):
         if self.level < 5:
-            on_back = self.on_back_callback
-            self.destroy()
-            LevelWindow(self.main_app, self.level + 1, on_back=on_back)
+            self.controller.show_level(self.level + 1)
 
     def go_to_levels(self):
-        self.destroy()
-        self.on_back_callback()
-
-    def back_to_levels(self):
-        self.destroy()
-        self.on_back_callback()
+        self.controller.show_levels()
