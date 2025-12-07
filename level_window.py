@@ -4,6 +4,7 @@ from pathlib import Path
 import time
 import json
 
+# Класс для описания логики поведения самого тренажера на определенных уровнях
 
 class LevelFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -23,7 +24,7 @@ class LevelFrame(tk.Frame):
         top_bar.pack(fill="x")
 
         btn_back = tk.Button(top_bar, text="← Назад", command=self.go_to_levels)
-        btn_back.pack(side="left", padx=5, pady=5)
+        btn_back.pack(side="left",padx=5, pady=5)
 
         frame = tk.Frame(self)
         frame.pack(expand=True, fill="both", padx=10, pady=10)
@@ -38,7 +39,7 @@ class LevelFrame(tk.Frame):
             highlightthickness=0
         )
         self.text_example.pack(pady=10, fill="x")
-        self.text_example.configure(state="disabled")
+        self.text_example.configure(state="normal")
 
         self.text_example.tag_config("correct", background="#b8f5b1")
         self.text_example.tag_config("wrong", background="#f5b1b1")
@@ -91,6 +92,8 @@ class LevelFrame(tk.Frame):
         self.entry_input.bind("<KeyPress>", self.on_key_press)
         self.entry_input.bind("<KeyRelease>", self.on_key_release)
 
+# метод set_level для установки начальных настроек параметров при запуске уровня
+
     def set_level(self, level: int):
         self.level = level
         self.finished = False
@@ -117,6 +120,8 @@ class LevelFrame(tk.Frame):
         self._load_best_score()
         self.update_highlighting()
 
+# аналогично set_level только при перезагрузке, выставляет меньше параметров в значения по умолчанию
+
     def restart_level(self):
         self.finished = False
         self.errors = 0
@@ -129,6 +134,8 @@ class LevelFrame(tk.Frame):
         self.btn_next_level.pack_forget()
         self.btn_levels.pack_forget()
         self.update_highlighting()
+
+# читаем текст для уровня из txt файла
 
     def _load_level_text(self):
         base_dir = Path(__file__).resolve().parent
@@ -162,6 +169,8 @@ class LevelFrame(tk.Frame):
             lines = 10
         self.entry_input.configure(height=lines)
         self.text_example.configure(height=lines)
+
+# Методы для работы с json файлом
 
     def _best_scores_file(self) -> Path:
         base_dir = Path(__file__).resolve().parent
@@ -202,6 +211,8 @@ class LevelFrame(tk.Frame):
         with file_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
+# рассчет времени за которое пользователь прошел уровень
+
     def update_status(self):
         if self.start_time is None:
             elapsed = 0.0
@@ -211,6 +222,8 @@ class LevelFrame(tk.Frame):
             text=f"Ошибки: {self.errors} | Время: {elapsed:.1f} c"
         )
 
+# для перевода строк в нормальный вид
+
     def _index_to_global(self, line_index: int, col_index: int) -> int:
         offset = 0
         for i in range(line_index):
@@ -218,6 +231,8 @@ class LevelFrame(tk.Frame):
             if i < len(self.expected_lines) - 1:
                 offset += 1
         return offset + col_index
+
+# обновление для текста
 
     def update_highlighting(self):
         current_text = self.entry_input.get("1.0", "end-1c")
@@ -243,6 +258,8 @@ class LevelFrame(tk.Frame):
             self.text_example.tag_add("cursor", start, end)
 
         self.text_example.configure(state="disabled")
+
+# метод для отслеживания действий пользователя на клавиатуре
 
     def on_key_press(self, event):
         if self.finished:
@@ -282,14 +299,13 @@ class LevelFrame(tk.Frame):
             self.start_time = time.time()
 
         global_index = self._index_to_global(line_idx, col_idx)
-        if global_index >= len(self.expected_text):
+        expected_char = self.expected_text[global_index]
+        if typed_char != expected_char:
             self.errors += 1
-        else:
-            expected_char = self.expected_text[global_index]
-            if typed_char != expected_char:
-                self.errors += 1
 
         self.update_status()
+
+# метод для проверки того закончился ли уровень
 
     def on_key_release(self, event):
         if self.finished:
@@ -299,6 +315,8 @@ class LevelFrame(tk.Frame):
         if current_text == self.expected_text and len(current_text) == len(self.expected_text):
             self.finish_attempt()
 
+# метод для расчета финальных характеристик(скорость пользователя, количетсво очков)
+
     def finish_attempt(self):
         self.finished = True
         if self.start_time is None:
@@ -306,10 +324,7 @@ class LevelFrame(tk.Frame):
         else:
             elapsed = time.time() - self.start_time
         length = len(self.expected_text)
-        if elapsed > 0:
-            speed = length / elapsed
-        else:
-            speed = 0.0
+        speed = length / elapsed
         self.score = int(1000 + (length - elapsed) * 10 + (self.errors * -20))
         if self.score < 0:
             self.score = 0
@@ -329,9 +344,13 @@ class LevelFrame(tk.Frame):
             self.btn_next_level.pack(side="left", padx=5)
         self.btn_levels.pack(side="left", padx=5)
 
+# метод для перехода на следующий уровень
+
     def go_next_level(self):
         if self.level < 5:
             self.controller.show_level(self.level + 1)
+
+# метод для перехода к меню уровней
 
     def go_to_levels(self):
         self.controller.show_levels()

@@ -4,6 +4,7 @@ from tkinter import messagebox
 from levels_window import LevelsFrame
 from level_window import LevelFrame
 
+# Класс реализуйющй логику общего окна, запускает весь интерфейс
 
 class MainMenuApp(tk.Tk):
     def __init__(self):
@@ -31,6 +32,7 @@ class MainMenuApp(tk.Tk):
 
         self.show_menu()
 
+
     def _center_window(self, width, height):
         self.geometry(f"{width}x{height}")
         self.update_idletasks()
@@ -39,6 +41,8 @@ class MainMenuApp(tk.Tk):
         x = (sw - width) // 2
         y = (sh - height) // 2
         self.geometry(f"{width}x{height}+{x}+{y}")
+
+# методы для перехода на другие окна
 
     def show_menu(self):
         self.menu_frame.tkraise()
@@ -50,6 +54,8 @@ class MainMenuApp(tk.Tk):
         self.level_frame.set_level(level)
         self.level_frame.tkraise()
 
+
+# Класс реализуйющй логику для основного меню
 
 class MainMenuFrame(tk.Frame):
     def __init__(self, parent, controller: MainMenuApp):

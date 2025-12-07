@@ -1,5 +1,6 @@
 import tkinter as tk
 
+# Класс реализуйющий логику для меню уровней
 
 class LevelsFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -17,6 +18,8 @@ class LevelsFrame(tk.Frame):
 
         label = tk.Label(frame, text="Выберите уровень", font=("Arial", 14))
         label.pack(pady=10)
+
+# именно такая конструкция нужна для передачи правильного уровня к каждой кнопке
 
         for level in range(1, 6):
             btn = tk.Button(
