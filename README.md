@@ -1,6 +1,5 @@
 Клонирование репозитория:
 git clone https://github.com/Krabikkkk/laba-3.git
-cd <название_репозитория>
 
 Создание и активация виртуальной среды:
 Windows:
